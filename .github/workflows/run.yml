@@ -1,0 +1,70 @@
+name: Generate direct-list for gfwlist
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 22 * * *"
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**/README.md"
+
+env:
+  GITHUB_NAME: F4ria
+  GITHUB_EMAIL: f4riacool@gmail.com
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: master
+
+      - name: Set variables
+        run: |
+          echo "RELEASE_NAME=Released on $(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+          echo "TAG_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate new 
+        run: |
+          python thxgfw.py
+
+      - name: Move files to publish directory
+        run: |
+          mkdir -p publish
+          cp *.txt ./publish/
+          rm -f ./publish/*requirements.txt
+
+      - name: Git push assets to "release" branch
+        run: |
+          cd publish || exit 1
+          git init
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b release
+          git add .
+          git commit -m "${{ env.RELEASE_NAME }}"
+          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          git push -f origin release
