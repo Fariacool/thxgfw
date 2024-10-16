@@ -10,7 +10,7 @@ on:
       - "**/README.md"
 
 env:
-  GITHUB_NAME: F4ria
+  GITHUB_NAME: Fariacool
   GITHUB_EMAIL: f4riacool@gmail.com
 
 jobs:
